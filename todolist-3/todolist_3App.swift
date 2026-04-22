@@ -1,9 +1,8 @@
 import SwiftUI
 import FirebaseCore
 
-// AppDelegate is required to call FirebaseApp.configure() before any Firebase
-// service is accessed. The @UIApplicationDelegateAdaptor bridges UIKit's
-// application lifecycle into SwiftUI's App protocol.
+// AppDelegate initialises Firebase before any view or service is accessed.
+// The @UIApplicationDelegateAdaptor bridges UIKit's lifecycle into SwiftUI.
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
@@ -19,11 +18,17 @@ struct todolist_3App: App {
     // Register the AppDelegate so Firebase initialises before any view appears.
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
+    // AuthViewModel is the single source of truth for the auth session.
+    // @StateObject ensures it lives for the lifetime of the app and isn't
+    // re-created on SwiftUI redraws.
+    @StateObject private var authVM = AuthViewModel()
+
     var body: some Scene {
         WindowGroup {
-            // No NavigationView wrapper here — each tab owns its own
-            // NavigationStack internally, which avoids double-navigation chrome.
-            ContentView()
+            // RootView reads authVM from the environment and routes to either
+            // LandingView (unauthenticated) or ContentView (authenticated).
+            RootView()
+                .environmentObject(authVM)
         }
     }
 }

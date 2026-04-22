@@ -24,6 +24,7 @@ private let avatarEmojis = [
 // -----------------------------------------------------------------------------
 struct ProfileView: View {
     @ObservedObject var viewModel: ToDoViewModel
+    @EnvironmentObject private var authVM: AuthViewModel
 
     @State private var isEditingProfile: Bool     = false
     @State private var draftName: String          = ""
@@ -58,13 +59,15 @@ struct ProfileView: View {
                             activitySection
                         }
 
-                        Spacer(minLength: 20)
+                        // Extra space so the last card clears the floating tab bar
+                        Color.clear.frame(height: 110)
                     }
                     .padding(16)
                 }
             }
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .preferredColorScheme(theme.preferredColorScheme)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if isEditingProfile {
@@ -126,29 +129,43 @@ struct ProfileView: View {
             .buttonStyle(.plain)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isEditingProfile)
 
-            // Name & bio
+            // Display name / bio (edit mode) or just the email badge (view mode)
             VStack(spacing: 6) {
                 if isEditingProfile {
-                    TextField("Your name", text: $draftName)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    TextField("Display name", text: $draftName)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(theme.labelColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
 
-                    TextField("Your bio", text: $draftBio)
+                    TextField("Short bio", text: $draftBio)
                         .font(.system(size: 15, design: .rounded))
                         .foregroundColor(theme.secondaryLabelColor)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 30)
-                } else {
-                    Text(viewModel.profile.name)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(theme.labelColor)
+                }
 
-                    Text(viewModel.profile.bio)
-                        .font(.system(size: 15, design: .rounded))
-                        .foregroundColor(theme.secondaryLabelColor)
-                        .multilineTextAlignment(.center)
+                // Account email badge — always visible, never editable
+                if let email = authVM.currentEmail {
+                    HStack(spacing: 5) {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: 11, weight: .medium))
+                        Text(email)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(theme.accentColor)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(theme.accentColor.opacity(0.13))
+                            .overlay(
+                                Capsule()
+                                    .stroke(theme.accentColor.opacity(0.25), lineWidth: 1)
+                            )
+                    )
+                    .padding(.top, isEditingProfile ? 8 : 0)
                 }
             }
         }
@@ -332,6 +349,6 @@ struct ProfileView: View {
 // MARK: - Preview
 struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
-        ProfileView(viewModel: ToDoViewModel())
+        ProfileView(viewModel: ToDoViewModel(uid: "preview"))
     }
 }

@@ -16,9 +16,11 @@ import SwiftUI
 // -----------------------------------------------------------------------------
 struct SettingsView: View {
     @ObservedObject var viewModel: ToDoViewModel
+    @EnvironmentObject private var authVM: AuthViewModel
 
     @State private var showClearConfirmation: Bool   = false
     @State private var showResetConfirmation: Bool   = false
+    @State private var showSignOutConfirmation: Bool = false
     @State private var notificationsEnabled: Bool    = true
     @State private var hapticFeedback: Bool          = true
     @State private var showCompletedInList: Bool     = true
@@ -96,6 +98,17 @@ struct SettingsView: View {
                                 ) {
                                     showResetConfirmation = true
                                 }
+
+                                Divider().background(theme.secondaryLabelColor.opacity(0.2))
+
+                                actionRow(
+                                    label: "Sign Out",
+                                    icon: "rectangle.portrait.and.arrow.right",
+                                    iconColor: Color(hue: 0.62, saturation: 0.60, brightness: 0.70),
+                                    destructive: false
+                                ) {
+                                    showSignOutConfirmation = true
+                                }
                             }
                         }
 
@@ -112,13 +125,14 @@ struct SettingsView: View {
                             }
                         }
 
-                        Spacer(minLength: 30)
+                        Color.clear.frame(height: 110)
                     }
                     .padding(16)
                 }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .preferredColorScheme(theme.preferredColorScheme)
             // Clear completed confirmation
             .confirmationDialog(
                 "Clear all completed tasks?",
@@ -144,6 +158,19 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("All tasks and profile data will be permanently deleted.")
+            }
+            // Sign Out confirmation
+            .confirmationDialog(
+                "Sign out of your account?",
+                isPresented: $showSignOutConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Sign Out", role: .destructive) {
+                    authVM.signOut()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You'll need to sign back in to access your tasks.")
             }
         }
     }
@@ -286,6 +313,7 @@ struct SettingsView: View {
 // MARK: - Preview
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(viewModel: ToDoViewModel())
+        SettingsView(viewModel: ToDoViewModel(uid: "preview"))
+            .environmentObject(AuthViewModel())
     }
 }

@@ -5,7 +5,8 @@
 //  LAYER: ViewModel
 //  PURPOSE: The single source of truth for the app's state. Owns the task list,
 //           user profile, theme, and filter state. All mutations go through here.
-//           Tasks are now backed by Firebase Firestore (real-time sync).
+//           Tasks are backed by Firebase Firestore at users/{uid}/tasks/ so each
+//           authenticated user has a private, isolated task collection.
 //           Profile is persisted locally via UserDefaults.
 //
 
@@ -48,20 +49,34 @@ class ToDoViewModel: ObservableObject {
     }
 
     // ── Firestore ─────────────────────────────────────────────────────────────
-    private var db = Firestore.firestore()
+    private let db = Firestore.firestore()
+
+    /// The UID of the currently signed-in user.
+    /// All Firestore paths are scoped to `users/{uid}/tasks/`.
+    private let uid: String
 
     /// Holds the active Firestore listener so we can remove it on deinit.
     private var listenerRegistration: ListenerRegistration?
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
-    init() {
+    /// - Parameter uid: The Firebase Auth UID of the signed-in user.
+    ///                  Passed in by `ContentView` so tasks are private per user.
+    init(uid: String) {
+        self.uid = uid
         subscribeToTasks()
         loadProfile()
     }
 
     deinit {
         listenerRegistration?.remove()
+    }
+
+    // ── Private path helper ───────────────────────────────────────────────────
+
+    /// Convenience accessor for the authenticated user's tasks collection.
+    private var tasksCollection: CollectionReference {
+        db.collection("users").document(uid).collection("tasks")
     }
 
     // =========================================================================
@@ -73,7 +88,7 @@ class ToDoViewModel: ObservableObject {
     func subscribeToTasks() {
         listenerRegistration?.remove()
 
-        listenerRegistration = db.collection("tasks")
+        listenerRegistration = tasksCollection
             .order(by: "createdAt", descending: true) // Newest first
             .addSnapshotListener { [weak self] querySnapshot, error in
                 guard let self = self else { return }
@@ -137,7 +152,7 @@ class ToDoViewModel: ObservableObject {
         )
 
         do {
-            let _ = try db.collection("tasks").addDocument(from: newTask)
+            let _ = try tasksCollection.addDocument(from: newTask)
         } catch {
             print("Error adding task: \(error.localizedDescription)")
         }
@@ -146,7 +161,7 @@ class ToDoViewModel: ObservableObject {
     /// Flips `isCompleted` for the given task in Firestore.
     func toggleCompletion(for task: Task) {
         guard let id = task.id else { return }
-        db.collection("tasks").document(id).updateData([
+        tasksCollection.document(id).updateData([
             "isCompleted": !task.isCompleted
         ])
     }
@@ -155,7 +170,7 @@ class ToDoViewModel: ObservableObject {
     func updateTask(_ task: Task) {
         guard let id = task.id else { return }
         do {
-            try db.collection("tasks").document(id).setData(from: task)
+            try tasksCollection.document(id).setData(from: task)
         } catch {
             print("Error updating task: \(error.localizedDescription)")
         }
@@ -164,7 +179,7 @@ class ToDoViewModel: ObservableObject {
     /// Deletes the Firestore document for the given task ID.
     func deleteTask(withID id: String?) {
         guard let id = id else { return }
-        db.collection("tasks").document(id).delete()
+        tasksCollection.document(id).delete()
     }
 
     /// Deletes all tasks where `isCompleted == true` from Firestore.

@@ -275,6 +275,6 @@ struct AddTaskView: View {
 // MARK: - Preview
 struct AddTaskView_Previews: PreviewProvider {
     static var previews: some View {
-        AddTaskView(viewModel: ToDoViewModel())
+        AddTaskView(viewModel: ToDoViewModel(uid: "preview"))
     }
 }

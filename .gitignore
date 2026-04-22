@@ -1,0 +1,21 @@
+# MCP Secrets
+.vscode/mcp.json
+
+# Firebase/Google Secrets
+GoogleService-Info.plist
+todolist-3/GoogleService-Info.plist
+
+# macOS Junk
+.DS_Store
+*/.DS_Store
+
+# Xcode User Data
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Build Products
+DerivedData/
+build/
+
+secrets/*.json

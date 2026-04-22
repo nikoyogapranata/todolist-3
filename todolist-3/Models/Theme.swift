@@ -94,7 +94,20 @@ enum Theme: String, CaseIterable, Identifiable {
         labelColor.opacity(0.55)
     }
 
+
     // ── Swatch Colour (Theme Picker Circle) ───────────────────────────────────
     /// Representative colour shown in ThemeSelectorView.
     var swatch: Color { accentColor }
+
+    // ── Preferred Color Scheme ────────────────────────────────────────────────
+    /// Tells SwiftUI which rendering mode to use for system chrome (navigation
+    /// bar titles, status bar text, etc.) so they always contrast the background.
+    var preferredColorScheme: ColorScheme {
+        switch self {
+        case .light, .cherryBlossom, .autumn:
+            return .light
+        case .dark, .midnight, .astral:
+            return .dark
+        }
+    }
 }

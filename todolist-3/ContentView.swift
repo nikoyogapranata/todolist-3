@@ -2,39 +2,47 @@ import SwiftUI
 
 // -----------------------------------------------------------------------------
 // ContentView — Root / Parent View
+// Hosts a custom floating pill tab bar instead of the system UITabBar.
+// The system tab bar is hidden via UITabBar.appearance() in init.
 // -----------------------------------------------------------------------------
 struct ContentView: View {
 
-    @StateObject private var viewModel = ToDoViewModel()
+    @EnvironmentObject private var authVM: AuthViewModel
+
+    let uid: String
+    @StateObject private var viewModel: ToDoViewModel
     @State private var selectedTab: Int = 0
+
+    init(uid: String) {
+        self.uid = uid
+        _viewModel = StateObject(wrappedValue: ToDoViewModel(uid: uid))
+        // Hide the native system tab bar so our custom pill renders cleanly.
+        UITabBar.appearance().isHidden = true
+    }
 
     private var theme: Theme { viewModel.currentTheme }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        ZStack(alignment: .bottom) {
+            // ── Tab Content ───────────────────────────────────────────────
+            TabView(selection: $selectedTab) {
+                TasksTab(viewModel: viewModel)
+                    .tag(0)
+                ProfileView(viewModel: viewModel)
+                    .tag(1)
+                SettingsView(viewModel: viewModel)
+                    .tag(2)
+            }
 
-            // ── Tab 1: Tasks ───────────────────────────────────────────────
-            TasksTab(viewModel: viewModel)
-                .tabItem {
-                    Label("Tasks", systemImage: "checklist")
-                }
-                .tag(0)
-
-            // ── Tab 2: Profile ─────────────────────────────────────────────
-            ProfileView(viewModel: viewModel)
-                .tabItem {
-                    Label("Profile", systemImage: selectedTab == 1 ? "person.fill" : "person")
-                }
-                .tag(1)
-
-            // ── Tab 3: Settings ────────────────────────────────────────────
-            SettingsView(viewModel: viewModel)
-                .tabItem {
-                    Label("Settings", systemImage: selectedTab == 2 ? "gearshape.fill" : "gearshape")
-                }
-                .tag(2)
+            // ── Floating Pill Tab Bar ─────────────────────────────────────
+            FloatingTabBar(
+                selectedTab: $selectedTab,
+                theme: theme
+            )
+            .padding(.horizontal, 24)
+            .padding(.bottom, 28)
         }
-        .accentColor(theme.accentColor)
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
@@ -71,11 +79,12 @@ struct TasksTab: View {
                 }
 
                 // ── Floating Action Button ────────────────────────────────
+                // Bottom padding = pill height (~68) + pill bottom padding (28) + gap (12)
                 FloatingAddButton(accentColor: theme.accentColor) {
                     isAddingTask = true
                 }
                 .padding(.trailing, 22)
-                .padding(.bottom, 30)
+                .padding(.bottom, 108)
             }
             .navigationTitle("My Tasks")
             .toolbar {
@@ -86,6 +95,7 @@ struct TasksTab: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "Search tasks…")
+            .preferredColorScheme(theme.preferredColorScheme)
             .sheet(isPresented: $isAddingTask) {
                 AddTaskView(viewModel: viewModel)
             }
@@ -123,8 +133,9 @@ struct TasksTab: View {
                 .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
             }
 
-            Color.clear.frame(height: 90)
+            Color.clear.frame(height: 110)
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
